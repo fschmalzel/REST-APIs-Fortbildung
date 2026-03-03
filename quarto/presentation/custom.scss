@@ -1,0 +1,150 @@
+/*-- scss:defaults --*/
+
+// Farben
+$primary-color: #667eea;
+$secondary-color: #764ba2;
+$accent-color: #f6ad55;
+$text-color: #2d3748;
+$bg-color: #ffffff;
+
+// Schriftarten
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-monospace: "Fira Code", "Source Code Pro", Menlo, Monaco, Consolas, monospace;
+
+// Größen
+$heading-font-weight: 700;
+$heading-color: $text-color;
+
+/*-- scss:rules --*/
+
+.reveal {
+  font-size: 28px;
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3 {
+  color: $primary-color;
+  font-weight: $heading-font-weight;
+}
+
+.reveal h1 {
+  font-size: 2.5em;
+  margin-bottom: 0.5em;
+}
+
+.reveal h2 {
+  font-size: 1.8em;
+  //margin-top: 1em;
+}
+
+.reveal code {
+  background: #f7fafc;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.reveal pre code {
+  background: #2d3748;
+  padding: 1em;
+  border-radius: 8px;
+  max-height: 500px;
+  overflow: auto;
+}
+
+.reveal blockquote {
+  background: #edf2f7;
+  border-left: 5px solid $primary-color;
+  padding: 1em;
+  margin: 1em 0;
+  font-style: italic;
+}
+
+.reveal .callout {
+  padding: 1em;
+  margin: 1em 0;
+  border-left: 5px solid $accent-color;
+  background: #fffaf0;
+  border-radius: 4px;
+}
+
+.reveal .callout-warning {
+  border-left-color: #f6ad55;
+  background: #fffaf0;
+}
+
+.reveal .callout-info {
+  border-left-color: #4299e1;
+  background: #ebf8ff;
+}
+
+.reveal .callout-success {
+  border-left-color: #48bb78;
+  background: #f0fff4;
+}
+
+// HTTP-Methoden-Badges
+.method {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.8em;
+  font-family: $font-family-monospace;
+}
+
+.method-get {
+  background: #48bb78;
+  color: white;
+}
+
+.method-post {
+  background: #4299e1;
+  color: white;
+}
+
+.method-put {
+  background: #f6ad55;
+  color: white;
+}
+
+.method-delete {
+  background: #f56565;
+  color: white;
+}
+
+// Status-Code-Badges
+.status-2xx {
+  color: #48bb78;
+  font-weight: 600;
+}
+
+.status-4xx {
+  color: #f6ad55;
+  font-weight: 600;
+}
+
+.status-5xx {
+  color: #f56565;
+  font-weight: 600;
+}
+
+.jwt-header {
+  color: #62be7a;
+  word-break: break-all;
+}
+
+.jwt-payload {
+  color: #3377b1;
+  word-break: break-all;
+}
+
+.jwt-dot {
+  color: #fd65b0;
+}
+
+.jwt-signature {
+  color: #8b9ae5;
+  word-break: break-all;
+}

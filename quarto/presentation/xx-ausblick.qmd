@@ -1,0 +1,104 @@
+## Passwörter im Backend
+**Nie Klartext speichern**
+```raw
+Passwort: "abc123"
+      ↓ + Salt (zufälliger Wert)
+      ↓ + Hash-Funktion (bcrypt, argon2)
+Gespeichert: "$2b$12$LJ3m4ys..."
+```
+
+| Konzept | Zweck                                                                                     |
+|---------|-------------------------------------------------------------------------------------------|
+| Hash    | Einweg-Funktion — vom Hash kann man nicht auf das Passwort zurückrechnen                  |
+| Salt    | Zufälliger Zusatz pro Nutzer — verhindert, dass gleiche Passwörter gleiche Hashes ergeben |
+
+*In der Datenbank wird das Passwort-Hash und der Salt gespeichert.*
+
+## GraphQL
+
+**Problem:** REST liefert feste Datenstrukturen — oft zu viel oder zu wenig.
+```raw
+REST:    GET /users/1          → ganzes User-Objekt (Over-fetching)
+         GET /users/1/messages → zweiter Request nötig (Under-fetching)
+```
+```graphql
+query {
+  user(id: 1) {
+    name
+    messages {
+      title
+      created_at
+    }
+  }
+}
+```
+
+:::{style="font-size: 0.8em;"}
+
+|                | **REST**                           | **GraphQL**                     |
+|----------------|------------------------------------|---------------------------------|
+| **Endpunkte**  | Viele (`/users`, `/messages`, ...) | Einer (`/graphql`)              |
+| **Datenmenge** | Server bestimmt                    | Client bestimmt                 |
+| **Caching**    | Einfach (HTTP-Caching)             | Komplex (eigene Lösungen)       |
+| **Einsatz**    | Standard für öffentliche APIs      | Flexible Frontends, Mobile Apps |
+
+:::
+
+---
+
+## gRPC
+
+:::{style="font-size: 0.8em;"}
+
+|               | **REST**              | **gRPC**                             |
+|---------------|-----------------------|--------------------------------------|
+| **Format**    | JSON (Text)           | Protocol Buffers (Binär)             |
+| **Protokoll** | HTTP/1.1 oder 2       | HTTP/2                               |
+| **Kontrakt**  | OpenAPI (optional)    | `.proto`-Datei (verpflichtend)       |
+| **Streaming** | Nein (Workarounds)    | Bidirektional eingebaut              |
+| **Einsatz**   | Öffentliche APIs, Web | Microservices, interne Kommunikation |
+
+:::
+
+```protobuf
+// Beispiel: messages.proto
+service MessageBoard {
+  rpc GetMessage (MessageRequest) returns (Message);
+}
+message MessageRequest {
+  int32 id = 1;
+}
+```
+
+**Vorteil:** Schnell, typsicher, Code-Generierung.
+
+**Nachteil:** Nicht menschenlesbar, Browser-Support eingeschränkt.
+
+---
+
+## WebSockets
+
+**Problem:** HTTP ist Request-Response — der Server kann nicht von sich aus senden.
+
+**Lösung:** WebSocket öffnet eine dauerhafte, bidirektionale Verbindung.
+
+```raw
+HTTP:        Client → Request → Server → Response → Ende
+WebSocket:   Client ↔ Server (dauerhaft offen, beide senden jederzeit)
+```
+
+
+:::{style="font-size: 0.8em;"}
+
+|                | **REST**                 | **WebSocket**                  |
+|----------------|--------------------------|--------------------------------|
+| **Verbindung** | Pro Request neu          | Dauerhaft offen                |
+| **Richtung**   | Client → Server          | Bidirektional                  |
+| **Einsatz**    | CRUD, Abfragen           | Chat, Live-Daten, Gaming       |
+| **Overhead**   | Header bei jedem Request | Einmal Handshake, dann minimal |
+
+:::
+
+::: {.callout-note}
+Ein Chat wäre eine klassische WebSocket-Anwendung — neue Nachrichten könnten live erscheinen, ohne die Seite neu zu laden.
+:::

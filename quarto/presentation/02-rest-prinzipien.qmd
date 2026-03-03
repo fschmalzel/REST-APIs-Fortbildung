@@ -1,0 +1,282 @@
+
+## Was ist REST?
+
+**REST** = REpresentational State Transfer
+
+- Architekturstil für verteilte Systeme
+- Zustandslos (stateless)
+
+**Wichtig:** REST ≠ HTTP
+
+- **HTTP** = Protokoll (wie wird kommuniziert)
+- **REST** = Architekturstil (wie wird die API strukturiert)
+
+REST **nutzt** HTTP, ist aber nicht darauf beschränkt.
+
+::: {.callout-warning}
+Viele APIs nennen sich "RESTful", befolgen aber nicht alle REST-Prinzipien. Das ist OK!
+:::
+
+---
+
+## REST-Prinzipien: Überblick
+
+1. **Client-Server-Architektur**
+2. **Statelessness** (Zustandslosigkeit)
+3. **Cacheability** (Cachebarkeit)
+4. **Uniform Interface** (Einheitliche Schnittstelle)
+5. **Layered System** (Schichtenarchitektur)
+6. **Code on Demand** (optional; Server kann ausführbaren Code an den Client schicken)
+
+---
+
+## 1. Client-Server-Architektur
+
+**Trennung** von Client und Server
+
+- Client kennt nur die Schnittstelle (API)
+- Server verwaltet Daten und Geschäftslogik
+
+**Vorteile:**
+
+- Unabhängige Entwicklung
+- Skalierbarkeit
+- Verschiedene Clients (Web, Mobile, Desktop)
+
+---
+
+## 2. Statelessness
+
+**Zustandslos:** Jeder Request enthält **alle** notwendigen Informationen.
+
+```http
+# ❌ Stateful (Session auf Server)
+GET /messages/next HTTP/1.1
+Cookie: session=abc123
+
+# ✅ Stateless (alles im Request)
+GET /messages?offset=10&limit=5 HTTP/1.1
+Authorization: Bearer eyJhbGc...
+```
+
+**Vorteile:**
+
+- Skalierbarkeit (Load Balancing)
+- Einfacheres Debugging
+- Cache-freundlich
+
+---
+
+## 3. Uniform Interface: Prinzipien
+
+1. **Identification of Resources** Jede Ressource hat eine eindeutige ID (URL)
+2. **Manipulation through Representations** Man arbeitet nicht direkt mit der Ressource, sondern mit einer Repräsentation (JSON, XML, HTML)
+3. **Self-descriptive Messages** Jede Nachricht enthält genug Informationen, um verstanden zu werden (Header, Status Codes, Content-Type)
+
+---
+
+## 3. Identification of Resources
+
+**Ressource** = Jedes "Ding" mit einer eindeutigen ID
+
+Beispiele:
+- Alle Nachrichten: `/messages`
+- Nachricht mit ID 1: `/messages/1`
+- Benutzer alice: `/users/alice`
+
+::: {.callout-info}
+**Ressourcen** sind Nomen (Dinge), **keine Verben** (Aktionen)!
+:::
+
+## 3. Identification of Resources
+
+### Best Practices:
+1. **Nomen verwenden**, keine Verben
+2. **Plural** für Sammlungen: `/messages`, nicht `/message`
+3. **Konsistente Benennung**: `snake_case` oder `camelCase`
+4. **Versionierung**: `/v1/messages`, `/v2/messages`
+5. **Filter als Query-Parameter**: `?status=active`
+6. **Dokumentation**: OpenAPI, Swagger (später)
+
+---
+
+## 3. Identification of Resources
+
+| ❌ Schlecht                   | ✅ Gut                |
+|------------------------------|----------------------|
+| `GET    /getMessages       ` | `GET    /messages`   |
+| `GET    /getMessage?id=1   ` | `GET    /messages/1` |
+| `POST   /createMessage     ` | `POST   /messages`   |
+| `POST   /updateMessage?id=1` | `PUT    /messages/1` |
+| `POST   /deleteMessage?id=1` | `DELETE /messages/1` |
+
+---
+
+## 3. Identification of Resources
+
+**Hierarchien:**
+```raw
+GET /users/alice/messages       # Nachrichten von alice
+GET /users/alice/messages/1     # Nachricht 1 von alice
+```
+
+**Filter & Pagination:**
+```raw
+GET /messages?author=alice&limit=10&offset=0
+GET /messages?created_after=2025-01-01
+```
+
+---
+
+## 3. Manipulation through Representations
+Der Client arbeitet nie direkt mit den Daten — nur mit einer Repräsentation (z.B. JSON).
+```Client  ←→  JSON-Repräsentation  ←→  Server  ←→  Datenbank```. Intern könnte der Server die Daten speichern wie er will: PostgreSQL, MongoDB, eine Textdatei — der Client merkt keinen Unterschied.
+
+```json
+# Beispiel: Eine Nachricht im MessageBoard
+{
+  "id": 1,
+  "author": "Alice",
+  "message": "Hallo Welt",
+  "created_at": "2025-06-01T10:00:00Z"
+}
+```
+
+Vorteile:
+
+- Backend kann Datenbank wechseln, ohne dass Clients angepasst werden müssen
+- Dieselbe Ressource kann unterschiedlich dargestellt werden (JSON, XML, HTML) — je nach Accept-Header
+- Interne Felder (z.B. password_hash) bleiben verborgen
+
+---
+
+## 3. Uniform Interface: Self-descriptive Messages
+
+
+- Pfad (URL): Welche Ressource?
+- HTTP-Methode: Was wird mit der Ressource gemacht?
+- Header: z.B. Content-Type: Wie sehen die Daten aus?
+- Status-Codes: Was ist passiert? 4XX/5XX -> Fehler 2XX -> Erfolg
+
+---
+
+## 3. Self-descriptive Messages
+### CRUD → HTTP-Methoden
+
+| CRUD       | HTTP-Methode | Beispiel             |
+|------------|--------------|----------------------|
+| **C**reate | POST         | `POST /messages`     |
+| **R**ead   | GET          | `GET /messages/1`    |
+| **U**pdate | PUT / PATCH  | `PUT /messages/1`    |
+| **D**elete | DELETE       | `DELETE /messages/1` |
+
+---
+
+## 3. Self-descriptive Messages
+### PUT vs. PATCH
+
+|                | PUT                 | PATCH                |
+|----------------|---------------------|----------------------|
+| **Operation**  | Komplette Ersetzung | Teilweise Änderung   |
+| **Idempotent** | ✅ Ja                | ✅ Ja (meist)         |
+| **Body**       | Komplettes Objekt   | Nur geänderte Felder |
+
+**Beispiel PUT:**
+```json
+PUT /messages/1
+{"title": "Neu", "content": "Neuer Inhalt"}
+```
+
+**Beispiel PATCH:**
+```json
+PATCH /messages/1
+{"title": "Neu"}  // content bleibt unverändert
+```
+
+---
+
+##  3. Self-descriptive Messages
+### Fehlerbehandlung
+
+**Gute Fehlerantworten:**
+```json
+{
+  "error": "validation_failed",
+  "message": "Titel ist zu lang",
+  "details": {
+    "field": "title",
+    "max_length": 200,
+    "actual_length": 250
+  }
+}
+```
+
+**Konsistente Struktur** über alle Endpunkte hinweg!
+
+---
+
+## Beispiel: MessageBoard-API
+
+```raw
+# Ressourcen
+GET    /api/v1/messages          # Liste aller Nachrichten
+GET    /api/v1/messages/1        # Eine Nachricht
+POST   /api/v1/messages          # Neue Nachricht
+PUT    /api/v1/messages/1        # Nachricht ändern
+DELETE /api/v1/messages/1        # Nachricht löschen
+
+# Authentifizierung
+POST   /api/v1/auth/login        # Login
+POST   /api/v1/auth/refresh      # Token erneuern
+
+# Admin
+POST   /api/v1/admin/reset       # DB zurücksetzen
+```
+
+---
+
+## 4. Cachability
+
+**Eigener Block später:** [Caching](05-caching.html)
+
+## 5. Layered System
+Zwischen Client und Server können transparente Zwischenschichten liegen. Ein Client weiß nicht, ob er mit dem Server, einem Proxy oder einem Load Balancer spricht.
+
+```{mermaid}
+graph LR
+    subgraph " "
+        direction LR
+        C1[Client] --> S1[Server]
+    end
+
+    subgraph " "
+        direction LR
+        C2[Client] --> LB[Load Balancer] --> Cache --> S2[Server]
+    end
+
+    style LB stroke-dasharray: 5 5
+    style Cache stroke-dasharray: 5 5
+```
+
+## Zusammenfassung
+
+- **REST** = Architekturstil für APIs
+- **Ressourcen** = Nomen mit eindeutigen URIs
+- **HTTP-Methoden** = Operationen auf Ressourcen
+- **Stateless** = Jeder Request ist unabhängig
+- **Uniform Interface** = Konsistente API-Struktur
+
+
+## Übung 3
+Basis-URL: `https://rest.fschmalzel.de/api/v1/public/messages`
+
+Message Board ansehen: <https://rest.fschmalzel.de/board/public>
+
+**Aufgaben:**
+
+1. Ruft alle Nachrichten ab (vgl. Übung 1)
+2. Ruft eine einzelne Nachricht ab
+3. Löscht eine Nachricht
+4. Versucht, eine Nachricht zu ändern (PUT oder PATCH) — was passiert?
+
+**Diskussion:** Jeder kann fremde Nachrichten löschen und ändern. Wie könnte man das verhindern?

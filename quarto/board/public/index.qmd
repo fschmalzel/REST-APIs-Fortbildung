@@ -1,0 +1,8 @@
+---
+format:
+  html:
+    toc: false
+    page-layout: custom
+---
+
+{{< include ../_board.qmd >}}

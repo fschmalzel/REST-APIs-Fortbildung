@@ -1,0 +1,268 @@
+## Was ist HTTP?
+
+**HTTP** = **H**yper**t**ext **T**ransfer **P**rotocol
+
+- Transportprotokoll
+- Request-Response-Modell: Client fragt, Server antwortet
+- Zustandslos: Jede Anfrage steht für sich allein
+- Textbasiert und menschenlesbar
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+Server: ECAcc (nyd/D10E)
+Content-Length: 1256
+
+<!doctype html>
+<!-- HTML content follows here -->
+```
+
+---
+
+## URL (Uniform Resource Locator)
+
+`https://api.example.com:443/users/123?sort=name&limit=10`
+
+| Bestandteil | Beispiel | Beschreibung |
+|-------------|----------|--------------|
+| **Schema** | `https://` | Protokoll (http, https, ftp, ...) |
+| **Host** | `api.example.com` | Domain oder IP-Adresse |
+| **Port** | `:443` | Optional (http = 80, https = 443) |
+| **Pfad** | `/users/123` | Ressourcenpfad |
+| **Query** | `?sort=name&limit=8` | Parameter |
+
+---
+
+## HTTP-Methoden
+
+| Methode    | Aktion    | Idempotent |
+|------------|-----------|:----------:|
+| **GET**    | Abrufen   |     ✓      |
+| **POST**   | Erstellen |     ✗      |
+| **PUT**    | Ersetzen  |     ✓      |
+| **PATCH**  | Ändern    |    ✗/✓     |
+| **DELETE** | Löschen   |     ✓      |
+
+::: {.callout-note}
+## Idempotenz
+Mehrfaches Ausführen führt zum **selben Ergebnis** wie einmaliges Ausführen.
+:::
+
+---
+
+## HTTP Statuscodes 1/2
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**2xx Erfolg**
+
+| Code | Bedeutung |
+|------|-----------|
+| `200` | OK – Anfrage erfolgreich |
+| `201` | Created – Ressource erstellt |
+| `204` | No Content – Erfolgreich, keine Daten |
+
+:::
+
+::: {.column width="50%"}
+
+**3xx Umleitung**
+
+| Code | Bedeutung |
+|------|-----------|
+| `301` | Moved Permanently – Dauerhaft verschoben |
+| `302` | Found – Temporär umgeleitet |
+| `304` | Not Modified – Cache nutzen |
+:::
+
+::::
+
+::: {.aside}
+Vollständige Liste: <https://de.wikipedia.org/wiki/HTTP-Statuscode>
+:::
+
+---
+
+## HTTP Statuscodes 2/2
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**4xx Client-Fehler**
+
+| Code | Bedeutung |
+|------|-----------|
+| `400` | Bad Request – Fehlerhafte Anfrage |
+| `401` | Unauthorized – Nicht authentifiziert |
+| `403` | Forbidden – Keine Berechtigung |
+| `404` | Not Found – Ressource existiert nicht |
+
+:::
+
+::: {.column width="50%"}
+
+**5xx Server-Fehler**
+
+| Code | Bedeutung |
+|------|-----------|
+| `500` | Internal Error – Serverfehler |
+| `502` | Bad Gateway – Upstream-Problem |
+| `503` | Unavailable – Überlastet/Wartung |
+:::
+
+::::
+
+::: {.aside}
+Vollständige Liste: <https://de.wikipedia.org/wiki/HTTP-Statuscode>
+:::
+
+---
+
+## Request-Aufbau
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Struktur**
+
+1. **Startzeile**: Methode, Pfad, HTTP-Version
+
+2. **Header**: Metadaten
+
+3. **Leerzeile**: Trennt Header vom Body
+
+4. **Body** *(optional)*: Nutzdaten
+:::
+
+::: {.column width="50%"}
+Beispiel: Update Nutzername
+```{.http}
+POST /api/v1/users/42 HTTP/1.1
+Host: example.com
+Accept: application/json
+Authorization: Bearer xyz123
+
+{ "name": "Max Mustermann" }
+```
+
+Beispiel: Hauptstadt von Deutschland anfragen
+```{.http}
+GET /v3.1/name/germany?fields=capital HTTP/1.1
+Host: restcountries.com
+Accept: application/json
+```
+
+:::
+
+::::
+
+---
+
+## Response-Aufbau
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Struktur**
+
+1. **Statuszeile**: HTTP-Version, Statuscode
+
+2. **Header**: Metadaten
+
+3. **Leerzeile**: Trennt Header vom Body
+
+4. **Body**: Daten
+:::
+
+::: {.column width="50%"}
+Beispiel: Update Nutzername
+```{.http}
+HTTP/1.1 200 OK
+```
+
+Beispiel: Hauptstadt von Deutschland anfragen
+```{.http}
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: max-age=3600
+
+[
+  {
+    "capital": [
+      "Berlin"
+    ]
+  }
+]
+```
+:::
+
+::::
+
+---
+
+## Header (Request)
+
+| Header          | Funktion               | Beispiel                      |
+|-----------------|------------------------|-------------------------------|
+| `Content-Type`  | Was schicke ich?       | `application/json`            |
+| `Accept`        | Was möchte ich zurück? | `application/json, text/html` |
+| `Authorization` | Authentifizierung      | `Bearer eyJhbG...`            |
+| `User-Agent`    | Wer fragt an?          | `Mozilla/5.0...`              |
+| `Host`          | Welcher Server?        | `api.example.com`             |
+
+::: {.aside}
+Vollständige Liste: <https://developer.mozilla.org/de/docs/Web/HTTP/Reference/Headers>
+:::
+
+::: {.notes}
+- Content-Type ist bei POST/PUT besonders wichtig
+- Host ermöglicht Virtual Hosting (mehrere Domains auf einem Server)
+:::
+
+---
+
+## Header (Response)
+
+| Header           | Funktion                                       | Beispiel                      |
+|------------------|------------------------------------------------|-------------------------------|
+| `Content-Type`   | Format der Antwort                             | `application/json`            |
+| `Content-Length` | Größe in Bytes                                 | `1234`                        |
+| `Cache-Control`  | Caching-Regeln                                 | `max-age=3600, public`        |
+| `ETag`           | Versions-Fingerabdruck                         | `"33a64df5"`                  |
+| `Location`       | Weiterleitung bei 3xx / Neue Ressource bei 201 | `http://example.com/users/42` |
+
+
+::: {.notes}
+- ETag und Cache-Control kommen in Block 5 ausführlich
+- Location wichtig bei 201 Created → zeigt auf neue Ressource
+:::
+
+---
+
+## JSON
+
+**JavaScript Object Notation**
+
+- Schlüssel-Wert-Paare in geschweiften Klammern `{ }`
+- Arrays in eckigen Klammern `[ ]`
+- Datentypen: String, Number, Boolean, null, Object, Array
+
+```json
+{
+  "name": "Max Mustermann",
+  "alter": 28,
+  "aktiv": true,
+  "adresse": {
+    "stadt": "Berlin",
+    "plz": "10115"
+  },
+  "hobbies": ["Lesen", "Wandern", "Kochen"]
+}
+```
+
+
+::: {.aside}
+Mehr Informationen: <https://www.json.org/json-de.html>
+:::
+

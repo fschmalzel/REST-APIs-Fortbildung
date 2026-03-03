@@ -1,0 +1,27 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "REST-APIs: Grundlagen und Praxis"
+  navbar:
+    logo: assets/logo.png
+    left:
+      - text: "Startseite"
+        href: index.html
+      - text: "Foliensatz"
+        href: presentation/index.html
+      - text: "Cheatsheet"
+        href: cheatsheet.html
+      - text: "API Docs"
+        href: openapi/index.html
+      - text: "Message Board (Offen)"
+        href: board/public
+      - text: "Message Board (Auth)"
+        href: board
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2

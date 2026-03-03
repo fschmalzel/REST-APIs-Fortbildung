@@ -1,0 +1,70 @@
+## curl (Client and URL)
+
+- Kommandozeilentool für HTTP-Anfragen
+- Auf den meisten Systemen verfügbar
+- Gut für Automatisierung und Debugging
+
+```bash
+$ curl https://restcountries.com/v3.1/name/germany?fields=capital
+[{"capital":["Berlin"]}]
+```
+
+| Flag | Wirkung |
+|------|---------|
+| `-i` | Zeigt Response-Header |
+| `-v` | Zeigt kompletten Request/Response (verbose) |
+| `-X POST` | Setzt HTTP-Methode explizit |
+
+## Übung 1 – GET-Requests
+
+**Aufgaben:**
+
+1. Öffentliche API aufrufen:
+`curl https://restcountries.com/v3.1/name/germany?fields=capital`
+
+2. Response-Header anschauen:
+`curl -i https://restcountries.com/v3.1/name/germany?fields=capital`
+
+3. Verbose-Modus ausprobieren:
+`curl -v https://restcountries.com/v3.1/name/germany?fields=capital`
+
+## curl – Header und Body
+
+| Flag | Wirkung |
+|------|---------|
+| `-H "Header: Wert"` | Setzt einen Header, mehrfach möglich |
+| `-d '...'` | Setzt den Request-Body |
+| `--json '...'` | Kurzform für `-H "Content-Type: application/json" -d '{...}'` |
+
+```bash
+curl \
+  https://rest.fschmalzel.de/api/v1/public/messages \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"author": "Max", "title": "foobar", "content": "Hello World!"}'
+```
+
+```bash
+curl \
+  https://rest.fschmalzel.de/api/v1/public/messages \
+  -X POST \
+  --json '{"author": "Max", "title": "foobar",  "content": "Hello World!"}'
+```
+
+## Übung 2 – POST-Requests
+Basis-URL: `https://rest.fschmalzel.de/api/v1/public/messages`
+Message Board ansehen: <https://rest.fschmalzel.de/board/public>
+**Aufgaben:**
+
+1. Ruft alle Nachrichten ab (GET) – was fällt am Response auf? 
+2. Schickt eine Nachricht ans Board (POST mit --json)
+`curl https://rest.fschmalzel.de/api/v1/public/messages -X POST --json '{"author": "NAME", "title": "TITEL", "content": "NACHRICHT"}'`
+3. Versucht, Fehler zu provozieren:
+  - Was passiert ohne Body? 
+  - Was passiert mit kaputtem JSON? 
+  - Was passiert, wenn ihr die falsche Methode nutzt?
+4. Schaut euch die Response-Header an (-i) – welche Statuscodes bekommt ihr?
+
+**Bonus:** Was könnte man mit den Nachrichten noch alles machen? Welche HTTP-Methoden habt ihr noch nicht benutzt?
+
+

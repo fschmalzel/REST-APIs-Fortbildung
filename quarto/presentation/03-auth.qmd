@@ -1,0 +1,330 @@
+## Authentifizierung vs. Autorisierung
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Authentifizierung**
+*"Wer bist du?"*
+
+- Identität bestätigen
+- Login: Benutzername + Passwort
+- Ergebnis: Token / Session
+- HTTP: `401 Unauthorized`
+:::
+
+::: {.column width="50%"}
+**Autorisierung**
+*"Was darfst du?"*
+
+- Berechtigungen prüfen
+- Darf dieser Nutzer das?
+- Ergebnis: Zugriff erlaubt / verweigert
+- HTTP: `403 Forbidden`
+:::
+
+::::
+
+::: {.callout-note}
+## Analogie
+**Authentifizierung** = Ausweis zeigen am Eingang.
+
+**Autorisierung** = Zutritt zum Serverraum nur für Admins.
+:::
+
+---
+
+## Einschub: Base64-Kodierung
+
+- Übersetzt beliebige Binärdaten in Text
+- 64 Zeichen: A–Z, a–z, 0–9, +, /
+- `=` als Padding
+- Pro Zeichen werden 6 Bit kodiert
+- Keine Verschlüsselung, nur Kodierung!
+
+**Anwendungsfälle:**
+
+- Basic Authentication
+- Eingebettete Bilder in HTML/CSS
+- Dateianhänge in E-Mails
+
+**Beispiel:**
+```raw
+Hello              →  SGFsbG8=
+REST               →  UkVTVA==
+username:password  →  dXNlcm5hbWU6cGFzc3dvcmQ=
+```
+
+---
+
+## JWT — JSON Web Token
+
+- Offener Standard ([RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519))
+- Kompaktes, selbständig verifizierbares Token
+- Besteht aus **drei Teilen**, getrennt durch `.`
+- Jeder Teil ist **Base64url-kodiert**
+- Kein zentraler Server zur Verifikation nötig
+
+`Header.Payload.Signature`
+
+::: {.callout-warning}
+Base64 ist **keine Verschlüsselung** — der Inhalt ist lesbar!
+:::
+
+---
+
+## JWT — Aufbau
+
+[eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9]{.jwt-header}[.]{.jwt-dot}[eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0]{.jwt-payload}[.]{.jwt-dot}[KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30]{.jwt-signature}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**[Header]{.jwt-header}** — Algorithmus & Typ
+```json
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+```
+
+**[Payload]{.jwt-payload}** — Claims (Nutzdaten)
+```json
+{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "admin": true,
+  "iat": 1516239022
+}
+```
+:::
+
+::: {.column width="50%"}
+**[Signatur]{.jwt-signature}** — Integritätsschutz
+```raw
+HMACSHA256(
+  base64url(header) + "." +
+  base64url(payload),
+  secret
+)
+```
+
+→ Prüft, ob das Token **unverändert** ist
+:::
+
+::::
+
+::: {.aside}
+JWT Debugger: <https://jwt.io/>
+:::
+
+---
+
+## JWT — Claims {.smaller}
+
+**Standardisierte Claims (registered):**
+
+
+| Feld | Bedeutung | Beispiel |
+|------|-----------|---------|
+| `iss` | Aussteller (*iss*uer) | `example.com` |
+| `sub` | Nutzer-ID (*sub*ject) | `user_42` |
+| `aud` | Zielgruppe (*aud*ience) | `api.example.com` |
+| `exp` | Ablaufzeit (*exp*iration) | `1516239022` |
+| `nbf` | Gültig ab (*n*ot *b*e*f*ore) | `1516236022` |
+| `iat` | Ausstelldatum (*i*ssued *at*) | `1516236022` |
+| `jti` | Eindeutige Token-ID (*J*W*T* *I*D) | `abc123` |
+
+
+Eigene Claims können frei hinzugefügt werden (`"admin": true`, `"role": "teacher"`).
+
+::: {.callout-note}
+`exp`, `nbf` und `iat` sind Unix-Timestamps (Sekunden seit 01.01.1970).
+:::
+
+---
+
+## JWT — Verifikation & Grenzen
+
+**Vorteil: Dezentrale Verifikation**
+
+- Reduziert Zugriffe auf Datenbanken
+- Entlastet Authentifizierungsserver
+
+```raw
+Server empfängt Token
+→ Signatur prüfen
+→ exp / nbf prüfen
+→ Kein Datenbankaufruf nötig
+```
+
+---
+
+## JWT — Verifikation & Grenzen {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Symmetrisch (HMAC)**
+
+`alg: HS256`
+
+- Ein gemeinsames Secret
+- Wer verifizieren kann, kann auch ausstellen
+- Nur für interne Dienste geeignet
+
+```raw
+Auth-Server ←→ secret ←→ API-Server
+```
+:::
+
+::: {.column width="50%"}
+**Asymmetrisch (RSA / ECDSA)**
+
+`alg: RS256 / ES256`
+
+- Auth-Server besitzt **Private Key** (signiert)
+- API-Server kennt nur **Public Key** (verifiziert)
+- API-Server kann keine Tokens fälschen
+
+```raw
+Auth-Server → private key → Token
+API-Server  → public key  → Verifikation
+```
+:::
+
+::::
+
+**Nachteil: Tokens können (in der Regel) nicht zurückgezogen werden**
+
+::: {.callout-warning}
+Ein gültiges Token gibt Zugriff auf alle Ressourcen, für die es ausgestellt wurde.
+Deshalb werden bei kritischen Aktionen (Passwort ändern, Zahlung) oft nochmal Credentials abgefragt.
+:::
+
+::: {.callout-note}
+**Ausnahme:** Mit `jti` (JWT ID) kann ein Server eine Blacklist führen — dann ist Widerruf möglich, erfordert aber wieder einen zentralen Lookup.
+:::
+
+**Bekannte Konsequenz:**
+> *"Alle Geräte abmelden — dies kann bis zu 30 Minuten dauern."*
+
+---
+
+## Access Token & Refresh Token
+
+**Das Problem:** Kurzlebige Tokens sind sicher, aber lästig. Langlebige Tokens sind bequem, aber riskant.
+
+**Lösung: Zwei Tokens**
+
+:::{style="font-size: 0.8em;"}
+
+|                          | Access Token           | Refresh Token              |
+|--------------------------|------------------------|----------------------------|
+| **Lebenszeit**           | Kurz (~5–30 min)       | Lang (~7–90 Tage)          |
+| **Verwendung**           | Jede API-Anfrage       | Nur für neuen Access Token |
+| **Widerrufbar**          | Nein                   | Ja (zentral gespeichert)   |
+| **Risiko bei Diebstahl** | Gering (läuft bald ab) | Hoch                       |
+
+:::
+
+**Ablauf:**
+```raw
+Login → Access Token + Refresh Token
+API-Anfrage → Access Token im Header
+Access Token abgelaufen → Refresh Token → neuer Access Token
+Refresh Token abgelaufen → erneuter Login
+```
+
+---
+
+## JWT mit REST verwenden
+
+**Standard: Authorization Header**
+
+```http
+GET /api/v1/messages HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Alternative: Cookie** (`HttpOnly`, `Secure`)
+
+```http
+Cookie: access_token=eyJhbGc...
+```
+
+- Browser setzt ihn automatisch
+- JS-Code kann **nicht** darauf zugreifen (XSS-Schutz)
+- Anfällig für CSRF (braucht Gegenmassnahmen)
+
+**Nicht empfohlen: Query-Parameter**
+
+```raw
+GET /api/v1/messages?token=eyJhbGc...
+```
+
+- Token landet in **Server-Logs** und **Browser-Historie**
+- Nur für Sonderfälle (z.B. einmalige Download-Links)
+
+---
+
+## Fehlerszenarien
+
+:::{style="font-size: 0.8em;"}
+
+| Szenario                              | Statuscode | Beispiel-Response                    |
+|---------------------------------------|:----------:|--------------------------------------|
+| Kein Token mitgeschickt               |   `401`    | `"detail": "Not authenticated"`      |
+| Token abgelaufen                      |   `401`    | `"detail": "Token expired"`          |
+| Token manipuliert                     |   `401`    | `"detail": "Invalid token"`          |
+| Token gültig, aber keine Berechtigung |   `403`    | `"detail": "Not enough permissions"` |
+
+:::
+
+::: {.callout-note}
+`401` → Problem mit dem Token selbst (fehlt, abgelaufen, ungültig)
+`403` → Token ist gültig, aber der Nutzer darf das nicht
+:::
+
+---
+
+## Zusammenfassung
+
+- **Authentifizierung** (401) vs. **Autorisierung** (403)
+- **JWT** = selbständig verifizierbares Token aus Header, Payload, Signatur
+- **Base64 ≠ Verschlüsselung** — Payload ist lesbar
+- **Access Token** (kurzlebig) + **Refresh Token** (langlebig, widerrufbar)
+- **Bearer Header** ist der Standard für API-Anfragen
+
+## Übung 4 {.smaller}
+Basis-URL: `https://rest.fschmalzel.de/api/v1/messages` **(Ohne `public/`)**
+
+Message Board ansehen: <https://rest.fschmalzel.de/board>
+
+**Aufgaben:**
+
+1. Versucht Nachricht 1 (von alice) zu löschen, was passiert?
+2. Registriert euch:
+```sh
+curl https://rest.fschmalzel.de/api/v1/auth/register \
+  -X POST \
+  --json '{"username": "EUER_NAME", "password": "abc123"}'
+```
+3. Loggt euch ein — was bekommt ihr zurück?
+```sh
+curl https://rest.fschmalzel.de/api/v1/auth/login \
+  -X POST \
+  --json '{"username": "EUER_NAME", "password": "abc123"}'
+```
+4. Kopiert euren Access Token und schreibt eine Nachricht:
+```sh
+curl https://rest.fschmalzel.de/api/v1/messages \
+  -X POST \
+  -H "Authorization: Bearer EUER_TOKEN" \
+  --json '{"title": "TITEL", "content": "NACHRICHT"}'
+```
+5. Versucht, eure Nachricht ohne Token zu löschen — was passiert?
+6. Versucht, die Nachricht von jemand anderen zu löschen — was passiert?
+
+**Diskussion:** Schaut euch euren Token auf <https://jwt.io> an — was steht drin? Welche Claims erkennt ihr wieder?
+

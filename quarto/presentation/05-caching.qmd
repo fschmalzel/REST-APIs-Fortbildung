@@ -1,0 +1,96 @@
+## Caching
+
+**Problem:** Client fragt immer wieder dieselben Daten ab - unnötige Last und Latenz.
+**Lösung:** Server signalisiert, ob und wie lange eine Antwort gecacht werden darf.
+
+**Vorteile:**
+
+- Weniger Netzwerk-Traffic
+- Schnellere Antworten
+- Geringere Server-Last
+
+::: {.callout-note}
+Caching ist eines der sechs REST-Prinzipien — der Server muss kennzeichnen, ob eine Antwort cachebar ist.
+:::
+
+---
+
+## Cache-Control
+
+Der Server steuert das Caching über den `Cache-Control`-Header:
+```http
+HTTP/1.1 200 OK
+Cache-Control: max-age=3600, public
+```
+
+:::{style="font-size: 0.8em;"}
+
+| Optionen       | Bedeutung                                    |
+|----------------|----------------------------------------------|
+| `max-age=3600` | 3600 Sekunden (1h) gültig                    |
+| `public`       | Jeder darf cachen (auch Proxies)             |
+| `private`      | Nur der Client darf cachen                   |
+| `no-store`     | Nie cachen (z.B. sensible Daten)             |
+| `no-cache`     | Cachen erlaubt, aber vor Nutzung validieren  |
+
+:::
+
+::: {.callout-warning}
+`no-cache` ≠ "nicht cachen"! Es bedeutet: immer erst beim Server nachfragen, ob sich etwas geändert hat.
+:::
+
+---
+
+## ETag & Bedingte Requests (no-cache)
+
+**Problem:** `max-age` abgelaufen — hat sich die Ressource wirklich geändert?
+
+**Lösung:** Server vergibt einen Fingerabdruck (ETag). Client fragt: "Hat sich etwas geändert?"
+
+1. Erster Request:
+```http
+GET /api/v1/messages/1 →  200 OK
+                          ETag: "a1b2c3"
+```
+
+2. Späterer Request:
+```http
+   GET /api/v1/messages/1
+   If-None-Match: "a1b2c3"  →  304 Not Modified
+                                (kein Body, Cache nutzen)
+```
+
+3. Nach Änderung:
+```http
+   GET /api/v1/messages/1
+   If-None-Match: "a1b2c3"  →  200 OK
+                                ETag: "d4e5f6"
+                                (neuer Body, Cache aktualisieren)
+```
+
+---
+
+## Demo - Caching am MessageBoard
+1. Request mit verbose — ETag im Response suchen
+```sh
+curl -v https://rest.fschmalzel.de/api/v1/public/messages/1
+```
+
+
+2. Bedingter Request mit If-None-Match
+```sh
+curl -v -H "If-None-Match: \"EUER_ETAG\"" \
+ https://rest.fschmalzel.de/api/v1/public/messages/1
+```
+
+::: {.callout-tip}
+Im Browser passiert das automatisch — bei jedem Seitenaufruf prüft der Browser ETags und spart so Bandbreite.
+:::
+
+---
+
+## Zusammenfassung Caching
+- `Cache-Control` bestimmt ob und wie lange gecacht wird
+- `ETag` + `If-None-Match` ermöglichen Validierung ohne erneuten Download
+- `304 Not Modified` = "Deine Version ist noch aktuell"
+- Spart Bandbreite, reduziert Last, verbessert Performance

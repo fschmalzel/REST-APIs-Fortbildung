@@ -1,0 +1,819 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MessageBoard API",
+    "version": "1.0.0",
+    "description": "REST-API Schulungsserver — ein einfaches MessageBoard mit JWT-Authentifizierung.\n\n## Authentifizierung\n\nGeschützte Endpunkte erfordern einen **Bearer Token** im `Authorization`-Header:\n\n```\nAuthorization: Bearer <access_token>\n```\n\nToken erhält man über `POST /api/v1/auth/login`.\n\n## Demo-Benutzer\n\n| Benutzername | Passwort | Status |\n|---|---|---|\n| alice | password123 | aktiv |\n| bob | password123 | aktiv |\n| charlie | password123 | deaktiviert (für 403-Tests) |"
+  },
+  "servers": [
+    {
+      "url": "https://rest.fschmalzel.de",
+      "description": "Schulungsserver"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Lokale Entwicklung"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Öffentlich",
+      "description": "Endpunkte ohne Authentifizierung — ideal für erste `curl`-Übungen."
+    },
+    {
+      "name": "Nachrichten",
+      "description": "Nachrichten lesen und verwalten. POST, PUT, PATCH und DELETE erfordern Authentifizierung."
+    },
+    {
+      "name": "Authentifizierung",
+      "description": "Registrierung, Login und Token-Verwaltung (Access Token + Refresh Token)."
+    },
+    {
+      "name": "Admin",
+      "description": "Administrative Endpunkte — nur für Schulungszwecke."
+    }
+  ],
+  "paths": {
+    "/api/v1/public/messages": {
+      "get": {
+        "tags": ["Öffentlich"],
+        "summary": "Alle öffentlichen Nachrichten auflisten",
+        "description": "Alle Nachrichten auflisten (neueste zuerst). **Keine Authentifizierung erforderlich.**\n\nIdeal für erste `curl`-Übungen.",
+        "operationId": "listPublicMessages",
+        "parameters": [
+          {"$ref": "#/components/parameters/LimitParam"},
+          {"$ref": "#/components/parameters/OffsetParam"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginierte Liste der Nachrichten",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PaginatedMessages"}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Öffentlich"],
+        "summary": "Öffentliche Nachricht erstellen",
+        "description": "Neue Nachricht ohne Authentifizierung erstellen. **Autorenname wird manuell angegeben.**",
+        "operationId": "createPublicMessage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/PublicMessageCreate"},
+              "example": {
+                "author": "alice",
+                "title": "Hallo Welt",
+                "content": "Meine erste Nachricht via curl!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Nachricht erstellt",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "400": {"description": "Ungültige Eingabe"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      }
+    },
+    "/api/v1/public/messages/{message_id}": {
+      "parameters": [
+        {"$ref": "#/components/parameters/MessageIdParam"}
+      ],
+      "get": {
+        "tags": ["Öffentlich"],
+        "summary": "Einzelne öffentliche Nachricht abrufen",
+        "operationId": "getPublicMessage",
+        "responses": {
+          "200": {
+            "description": "Nachricht gefunden",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "404": {"description": "Nachricht nicht gefunden"}
+        }
+      },
+      "put": {
+        "tags": ["Öffentlich"],
+        "summary": "Öffentliche Nachricht vollständig ersetzen (PUT)",
+        "description": "Alle Felder einer Nachricht vollständig ersetzen (idempotent). Für partielle Updates → `PATCH`.\n\n**Nur für Schulungszwecke** — demonstriert PUT ohne Auth.",
+        "operationId": "replacePublicMessage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/PublicMessageCreate"},
+              "example": {
+                "author": "alice",
+                "title": "Neuer Titel",
+                "content": "Vollständig neuer Inhalt"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Nachricht ersetzt",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "404": {"description": "Nachricht nicht gefunden"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      },
+      "patch": {
+        "tags": ["Öffentlich"],
+        "summary": "Öffentliche Nachricht teilweise aktualisieren",
+        "description": "Einzelne Felder einer Nachricht aktualisieren. Nicht enthaltene Felder bleiben unverändert.\n\n**Nur für Schulungszwecke** — demonstriert PATCH ohne Auth.",
+        "operationId": "patchPublicMessage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/PublicMessagePatch"},
+              "example": {
+                "author": "alice",
+                "content": "Aktualisierter Inhalt"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Nachricht aktualisiert",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "404": {"description": "Nachricht nicht gefunden"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      },
+      "delete": {
+        "tags": ["Öffentlich"],
+        "summary": "Öffentliche Nachricht löschen",
+        "description": "Nachricht löschen ohne Authentifizierung.\n\n**Nur für Schulungszwecke** — demonstriert, warum Authentifizierung wichtig ist.",
+        "operationId": "deletePublicMessage",
+        "responses": {
+          "204": {"description": "Nachricht gelöscht"},
+          "404": {"description": "Nachricht nicht gefunden"}
+        }
+      }
+    },
+    "/api/v1/messages": {
+      "get": {
+        "tags": ["Nachrichten"],
+        "summary": "Alle Nachrichten auflisten",
+        "description": "Alle Nachrichten auflisten (neueste zuerst). **Keine Authentifizierung erforderlich.**",
+        "operationId": "listMessages",
+        "parameters": [
+          {"$ref": "#/components/parameters/LimitParam"},
+          {"$ref": "#/components/parameters/OffsetParam"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginierte Liste der Nachrichten",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PaginatedMessages"}
+              }
+            }
+          },
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      },
+      "post": {
+        "tags": ["Nachrichten"],
+        "summary": "Neue Nachricht erstellen",
+        "description": "Neue Nachricht erstellen. Der Autor wird automatisch aus dem Bearer Token ermittelt.\n\n**Authentifizierung erforderlich.**",
+        "operationId": "createMessage",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MessageCreate"},
+              "example": {
+                "title": "Hallo Welt",
+                "content": "Meine erste authentifizierte Nachricht!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Nachricht erstellt",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "401": {"description": "Nicht authentifiziert — Token fehlt oder ungültig"},
+          "403": {"description": "Konto deaktiviert"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      }
+    },
+    "/api/v1/messages/{message_id}": {
+      "parameters": [
+        {"$ref": "#/components/parameters/MessageIdParam"}
+      ],
+      "get": {
+        "tags": ["Nachrichten"],
+        "summary": "Einzelne Nachricht abrufen",
+        "description": "Einzelne Nachricht nach ID abrufen. **Keine Authentifizierung erforderlich.**",
+        "operationId": "getMessage",
+        "responses": {
+          "200": {
+            "description": "Nachricht gefunden",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "404": {"description": "Nachricht nicht gefunden"}
+        }
+      },
+      "put": {
+        "tags": ["Nachrichten"],
+        "summary": "Nachricht vollständig ersetzen",
+        "description": "Alle Felder einer Nachricht vollständig ersetzen (idempotent). Für partielle Updates → `PATCH`.\n\n**Authentifizierung erforderlich** — nur eigene Nachrichten.",
+        "operationId": "replaceMessage",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MessageCreate"},
+              "example": {
+                "title": "Neuer Titel",
+                "content": "Vollständig neuer Inhalt"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Nachricht ersetzt",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "401": {"description": "Nicht authentifiziert"},
+          "403": {"description": "Keine Berechtigung (nicht der Autor)"},
+          "404": {"description": "Nachricht nicht gefunden"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      },
+      "patch": {
+        "tags": ["Nachrichten"],
+        "summary": "Nachricht teilweise aktualisieren",
+        "description": "Einzelne Felder einer Nachricht aktualisieren. Nicht enthaltene Felder bleiben unverändert. Für vollständige Ersetzung → `PUT`.\n\n**Authentifizierung erforderlich** — nur eigene Nachrichten.",
+        "operationId": "patchMessage",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MessagePatch"},
+              "example": {
+                "content": "Nur der Inhalt wurde geändert"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Nachricht aktualisiert",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"}
+              }
+            }
+          },
+          "401": {"description": "Nicht authentifiziert"},
+          "403": {"description": "Keine Berechtigung (nicht der Autor)"},
+          "404": {"description": "Nachricht nicht gefunden"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      },
+      "delete": {
+        "tags": ["Nachrichten"],
+        "summary": "Nachricht löschen",
+        "description": "Nachricht löschen.\n\n**Authentifizierung erforderlich** — nur eigene Nachrichten.",
+        "operationId": "deleteMessage",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "204": {"description": "Nachricht gelöscht"},
+          "401": {"description": "Nicht authentifiziert"},
+          "403": {"description": "Keine Berechtigung (nicht der Autor)"},
+          "404": {"description": "Nachricht nicht gefunden"}
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Authentifizierung"],
+        "summary": "Neuen Benutzer registrieren",
+        "description": "Neues Benutzerkonto erstellen. Gibt direkt Access + Refresh Token zurück.",
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/RegisterRequest"},
+              "example": {
+                "username": "neuerbenutzer",
+                "password": "sicherespasswort123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Benutzer erstellt",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/TokenResponse"}
+              }
+            }
+          },
+          "409": {"description": "Benutzername bereits vergeben"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Authentifizierung"],
+        "summary": "Einloggen und Token erhalten",
+        "description": "Benutzer einloggen und JWT Access Token + Refresh Token erhalten.\n\n**Demo-Benutzer:**\n- `alice` / `password123`\n- `bob` / `password123`\n- `charlie` / `password123` (deaktiviert — für 403-Tests)",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/LoginRequest"},
+              "example": {
+                "username": "alice",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login erfolgreich",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/TokenResponse"}
+              }
+            }
+          },
+          "401": {"description": "Ungültige Anmeldedaten"},
+          "403": {"description": "Konto deaktiviert"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": ["Authentifizierung"],
+        "summary": "Access Token erneuern",
+        "description": "Neuen Access Token mit dem Refresh Token anfordern. Der Refresh Token bleibt gültig.",
+        "operationId": "refreshToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/RefreshRequest"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access Token erneuert",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/TokenResponse"}
+              }
+            }
+          },
+          "401": {"description": "Ungültiger oder abgelaufener Refresh Token"},
+          "422": {"$ref": "#/components/responses/ValidationError"}
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Authentifizierung"],
+        "summary": "Ausloggen und Refresh Token invalidieren",
+        "description": "Refresh Token serverseitig invalidieren. Der Access Token läuft nach `expires_in` Sekunden automatisch ab.\n\n**Authentifizierung erforderlich.**",
+        "operationId": "logout",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/RefreshRequest"}
+            }
+          }
+        },
+        "responses": {
+          "204": {"description": "Erfolgreich ausgeloggt"},
+          "401": {"description": "Nicht authentifiziert"}
+        }
+      }
+    },
+    "/api/v1/admin/reset": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Datenbank zurücksetzen",
+        "description": "**Nur für Schulungszwecke:** Datenbank auf initiale Demo-Daten zurücksetzen.\n\nErfordert das Reset-Passwort aus der Umgebungsvariable `RESET_PASSWORD`.\n\nIn Produktion niemals verwenden!",
+        "operationId": "resetDatabase",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/ResetRequest"}
+            }
+          }
+        },
+        "responses": {
+          "204": {"description": "Datenbank zurückgesetzt"},
+          "403": {"description": "Ungültiges Reset-Passwort"}
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "MessageIdParam": {
+        "name": "message_id",
+        "in": "path",
+        "required": true,
+        "description": "Eindeutige ID der Nachricht",
+        "schema": {
+          "type": "integer",
+          "example": 1
+        }
+      },
+      "LimitParam": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Maximale Anzahl der zurückgegebenen Einträge",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "example": 20
+        }
+      },
+      "OffsetParam": {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "description": "Anzahl der zu überspringenden Einträge (für Pagination)",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "example": 0
+        }
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Validierungsfehler",
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/HTTPValidationError"}
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Message": {
+        "type": "object",
+        "required": ["id", "title", "content", "author", "created_at"],
+        "description": "Eine Nachricht im MessageBoard.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Eindeutige Nachrichten-ID",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Titel der Nachricht",
+            "example": "Hallo Welt"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Inhalt der Nachricht",
+            "example": "Das ist meine erste Nachricht!"
+          },
+          "author": {
+            "type": "string",
+            "description": "Benutzername des Autors",
+            "example": "alice"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Erstellungszeitpunkt (ISO 8601)",
+            "example": "2024-01-15T10:30:00Z"
+          },
+          "updated_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "Letzter Änderungszeitpunkt (ISO 8601)",
+            "example": null
+          }
+        }
+      },
+      "PaginatedMessages": {
+        "type": "object",
+        "required": ["items", "total", "limit", "offset"],
+        "description": "Paginierte Liste von Nachrichten.",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/Message"},
+            "description": "Nachrichten auf dieser Seite"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Gesamtanzahl aller Nachrichten",
+            "example": 42
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximale Einträge pro Seite",
+            "example": 20
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Anzahl übersprungener Einträge",
+            "example": 0
+          }
+        }
+      },
+      "PublicMessageCreate": {
+        "type": "object",
+        "required": ["author", "title", "content"],
+        "description": "Neue öffentliche Nachricht — Autor wird manuell angegeben (kein Token).",
+        "properties": {
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Autorenname",
+            "example": "alice"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Titel der Nachricht",
+            "example": "Hallo Welt"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Nachrichteninhalt",
+            "example": "Meine erste Nachricht via curl!"
+          }
+        }
+      },
+      "MessageCreate": {
+        "type": "object",
+        "required": ["title", "content"],
+        "description": "Neue Nachricht — Autor wird automatisch aus dem Bearer Token ermittelt.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Titel der Nachricht",
+            "example": "Hallo Welt"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Nachrichteninhalt",
+            "example": "Das ist meine Nachricht!"
+          }
+        }
+      },
+      "PublicMessagePatch": {
+        "type": "object",
+        "required": ["author"],
+        "description": "Partielle Aktualisierung einer öffentlichen Nachricht. `author` ist erforderlich; `title` und `content` sind optional.",
+        "properties": {
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Autorenname",
+            "example": "alice"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Neuer Titel",
+            "example": "Aktualisierter Titel"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Neuer Inhalt",
+            "example": "Aktualisierter Inhalt"
+          }
+        }
+      },
+      "MessagePatch": {
+        "type": "object",
+        "description": "Partielle Aktualisierung einer Nachricht. Nur angegebene Felder werden geändert — alle anderen bleiben unverändert.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Neuer Titel",
+            "example": "Aktualisierter Titel"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Neuer Inhalt",
+            "example": "Aktualisierter Inhalt"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "description": "Registrierungsanfrage.",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50,
+            "pattern": "^[a-zA-Z0-9_]+$",
+            "description": "Benutzername (Buchstaben, Ziffern, Unterstrich)",
+            "example": "neuerbenutzer"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 5,
+            "description": "Passwort (mindestens 5 Zeichen)",
+            "example": "sicherespasswort123"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "description": "Login-Anfrage.",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Benutzername",
+            "example": "alice"
+          },
+          "password": {
+            "type": "string",
+            "description": "Passwort",
+            "example": "password123"
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": ["refresh_token"],
+        "description": "Anfrage zum Erneuern oder Invalidieren des Tokens.",
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "description": "Gültiger Refresh Token",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "required": ["access_token", "refresh_token", "token_type", "expires_in"],
+        "description": "JWT Token-Antwort nach erfolgreichem Login oder Registrierung.",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "JWT Access Token — für authentifizierte API-Anfragen im `Authorization`-Header",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsImV4cCI6MTcwNTMxMjYwMH0.abc123"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "JWT Refresh Token — zum Erneuern des Access Tokens via `POST /auth/refresh`",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInR5cGUiOiJyZWZyZXNoIn0.xyz789"
+          },
+          "token_type": {
+            "type": "string",
+            "description": "Token-Typ",
+            "default": "bearer",
+            "example": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "Gültigkeitsdauer des Access Tokens in Sekunden",
+            "example": 900
+          }
+        }
+      },
+      "ResetRequest": {
+        "type": "object",
+        "required": ["password"],
+        "description": "Reset-Anfrage. Passwort muss mit der Umgebungsvariable `RESET_PASSWORD` übereinstimmen.",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "Reset-Passwort",
+            "example": "super-secret-reset-pw"
+          }
+        }
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "description": "Validierungsfehler-Antwort.",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/ValidationError"}
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "properties": {
+          "loc": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"type": "string"},
+                {"type": "integer"}
+              ]
+            },
+            "description": "Pfad zum fehlerhaften Feld",
+            "example": ["body", "content"]
+          },
+          "msg": {
+            "type": "string",
+            "description": "Fehlerbeschreibung",
+            "example": "Field required"
+          },
+          "type": {
+            "type": "string",
+            "description": "Fehlertyp",
+            "example": "missing"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT Bearer Token. Erhalten über `POST /api/v1/auth/login`."
+      }
+    }
+  }
+}

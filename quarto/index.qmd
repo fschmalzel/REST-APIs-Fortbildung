@@ -1,0 +1,40 @@
+---
+title: "REST-APIs: Grundlagen und Praxis"
+subtitle: "Fortbildung für Lehrkräfte"
+format: html
+---
+
+## Worum geht es?
+
+Diese Fortbildung vermittelt den sicheren Umgang mit REST-APIs — von den theoretischen Grundlagen bis zur praktischen Anwendung. Ziel ist es, die Inhalte anschließend im eigenen Unterricht einsetzen zu können.
+
+## Ablauf
+
+| Block | Thema                   | Inhalte                                      |
+|-------|-------------------------|----------------------------------------------|
+| 1     | HTTP-Grundlagen         | Methoden, Statuscodes, Header, JSON          |
+| 2     | Erste Schritte mit cURL | GET- und POST-Requests am MessageBoard       |
+| 3     | REST-Prinzipien         | Ressourcen, Uniform Interface, Statelessness |
+| 4     | Authentifizierung       | JWT, Bearer Token, Access & Refresh Tokens   |
+| 5     | OpenAPI                 | Spezifikation lesen, Swagger UI              |
+| 6     | Hoppscotch              | OpenAPI-Import, Vergleich der Tools          |
+| 7     | Caching                 | Cache-Control, ETag, bedingte Requests       |
+
+## Materialien
+
+- [Foliensatz](presentation/index.html) — Präsentation mit allen Theorie- und Übungsblöcken
+- [Foliensatz (PDF)](presentation/index.html?print-pdf) — Zum Ausdrucken (Browser → Drucken → Als PDF speichern)
+- [Cheatsheet](cheatsheet.html) — Kompakte Referenz
+- [Cheatsheet (PDF)](cheatsheet.pdf) — Kompakte Referenz zum Ausdrucken
+- [OpenAPI-Dokumentation](openapi/index.html) — Swagger UI für die MessageBoard-API
+
+## MessageBoard
+
+Die API, an der wir gemeinsam arbeiten:
+
+- [Offenes Board](board/public) — ohne Authentifizierung, für die ersten Übungen
+- [Geschütztes Board](board) — mit Login, für den Auth-Block
+
+## Selbst hosten
+
+Alle Materialien und der Quellcode sind Open Source. Eine Anleitung zum Aufsetzen der eigenen Instanz findet sich im [GitHub-Repository](https://github.com/).

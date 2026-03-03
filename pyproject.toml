@@ -1,0 +1,16 @@
+[project]
+name = "rest"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "bcrypt>=4.3.0",
+    "pyjwt>=2.10.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.2",
+    "seaborn>=0.13.2",
+]

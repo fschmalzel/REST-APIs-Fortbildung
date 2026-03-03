@@ -1,0 +1,304 @@
+```{=html}
+<style>
+        :root {
+            --accent:          #667eea;
+            --accent-dark:     #5568d3;
+            --gradient-start:  #667eea;
+            --gradient-end:    #764ba2;
+        }
+        #board-wrap {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #board-wrap .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .board-header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .board-header h1 {
+            color: #2d3748;
+            margin: 0 0 10px 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .api-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .api-link:hover {
+            background: var(--accent-dark);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 2px solid #fc8181;
+            color: #742a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .messages {
+            display: grid;
+            gap: 20px;
+        }
+
+        .message {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .message:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .message-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+
+        .message-id {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .message-content {
+            color: #4a5568;
+            font-size: 1.05em;
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #718096;
+        }
+
+        .message-author {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .message-date {
+            font-style: italic;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h2 {
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #718096;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+</style>
+
+<div id="board-wrap">
+    <div class="container">
+        <header class="board-header">
+            <h1>📝 MessageBoard</h1>
+            <p id="badge" style="margin-top: 8px; color: #718096; font-size: 0.95em;"></p>
+        </header>
+
+        <div id="app">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Lade Nachrichten...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = window.location.origin;
+    const isPublic = window.location.pathname.startsWith('/board/public');
+
+    const config = isPublic ? {
+        apiPath:       '/api/v1/public/messages',
+        gradientStart: '#38a169',
+        gradientEnd:   '#2c7a7b',
+        accent:        '#38a169',
+        accentDark:    '#2f855a',
+        badge:         '🌐 Öffentlich — keine Authentifizierung erforderlich',
+    } : {
+        apiPath:       '/api/v1/messages',
+        gradientStart: '#667eea',
+        gradientEnd:   '#764ba2',
+        accent:        '#667eea',
+        accentDark:    '#5568d3',
+        badge:         '🔒 Authentifiziert',
+    };
+
+    const root = document.documentElement;
+    root.style.setProperty('--accent',         config.accent);
+    root.style.setProperty('--accent-dark',    config.accentDark);
+    root.style.setProperty('--gradient-start', config.gradientStart);
+    root.style.setProperty('--gradient-end',   config.gradientEnd);
+
+    document.getElementById('badge').textContent = config.badge;
+
+    async function loadMessages() {
+        const appDiv = document.getElementById('app');
+
+        try {
+            const response = await fetch(`${API_BASE}${config.apiPath}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const messages = data.items;
+
+            if (messages.length === 0) {
+                appDiv.innerHTML = `
+                    <div class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        <h2>Keine Nachrichten vorhanden</h2>
+                        <p>Verwenden Sie die API, um Nachrichten zu erstellen.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const messagesHTML = messages.map(msg => {
+                const createdDate = new Date(msg.created_at).toLocaleString('de-DE');
+                const title = msg.title;
+
+                return `
+                    <div class="message">
+                        <div class="message-header">
+                            <h2 class="message-title">${escapeHtml(title)}</h2>
+                            <span class="message-id">#${msg.id}</span>
+                        </div>
+                        <div class="message-content">
+                            ${escapeHtml(msg.content)}
+                        </div>
+                        <div class="message-footer">
+                            <span class="message-author">👤 ${escapeHtml(msg.author)}</span>
+                            <span class="message-date">📅 ${createdDate}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            appDiv.innerHTML = `<div class="messages">${messagesHTML}</div>`;
+
+        } catch (error) {
+            appDiv.innerHTML = `
+                <div class="error">
+                    <h2>❌ Fehler beim Laden der Nachrichten</h2>
+                    <p>${escapeHtml(error.message)}</p>
+                    <p style="margin-top: 10px;">
+                        Stellen Sie sicher, dass der MessageBoard-Server läuft:
+                        <code style="background: white; padding: 4px 8px; border-radius: 4px;">make server</code>
+                    </p>
+                </div>
+            `;
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Nachrichten beim Laden der Seite abrufen
+    loadMessages();
+
+    // Auto-Refresh alle 10 Sekunden
+    setInterval(loadMessages, 10000);
+</script>
+```

@@ -1,0 +1,27 @@
+format:
+  revealjs:
+    theme: [default, custom.scss]
+    slide-number: true
+    show-slide-number: all
+    transition: slide
+    background-transition: fade
+    chalkboard: true
+    menu: true
+    controls: true
+    navigation-mode: linear
+    footer: "REST-APIs: Grundlagen und Praxis | © 2026 THA"
+    logo: ../assets/logo.png
+    css: custom.css
+    highlight-style: github
+    code-line-numbers: true
+    code-copy: true
+    code-overflow: wrap
+
+# Jupyter/Python Ausführung
+execute:
+  enabled: true
+  cache: false
+  freeze: false
+
+# Sprache
+lang: de

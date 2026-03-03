@@ -1,0 +1,188 @@
+## Was ist OpenAPI?
+
+- Früher bekannt als **Swagger**, seit 2016 **OpenAPI Specification**
+- Maschinenlesbare Beschreibung einer REST-API
+- Format: **JSON oder YAML**
+- Standard der OpenAPI Initiative (Linux Foundation)
+
+::: {.callout-note}
+Eine OpenAPI-Datei ist ein **Vertrag** zwischen API-Anbieter und Nutzer –
+beide Seiten wissen genau, was erwartet wird.
+:::
+
+---
+
+## Wozu nützt OpenAPI?
+
+
+**Dokumentation**
+
+Aus der Spec wird automatisch eine interaktive Doku generiert:
+Swagger UI, Redoc, ...
+
+**Code-Generierung**
+
+Client-Bibliotheken, Server-Stubs und Typen können direkt
+aus der Spec erzeugt werden.
+
+**Teamarbeit**
+
+Frontend und Backend können **parallel** entwickeln,
+sobald der Vertrag (die Spec) feststeht.
+
+
+---
+
+## Aufbau — Überblick
+
+```json
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MessageBoard API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/messages": { ... },
+    "/api/v1/auth/login": { ... }
+  },
+  "components": {
+    "schemas": { ... },
+    "securitySchemes": { ... }
+  }
+}
+```
+
+| Bereich      | Inhalt                                              |
+|--------------|-----------------------------------------------------|
+| `info`       | Titel, Version, Beschreibung                        |
+| `paths`      | Alle Endpunkte mit Methoden, Parametern, Responses  |
+| `components` | Wiederverwendbare Schemas und Security-Definitionen |
+
+---
+
+## paths — JSON vs. Swagger UI {.smaller}
+
+**In der Spec (`openapi.json`), gekürzt**
+
+```json
+"/api/v1/auth/login": {
+  "post": {
+    "summary": "Einloggen und Token erhalten",
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "$ref": "#/components/schemas/LoginRequest"
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": { "description": "Login erfolgreich" },
+      "401": { "description": "Ungültige Anmeldedaten" },
+      "403": {"description": "Konto deaktiviert"}
+    }
+  }
+}
+```
+
+**In Swagger UI**: → <https://rest.fschmalzel.de/openapi/> 
+
+::: {.callout-tip}
+Das **Schloss-Symbol** zeigt: dieser Endpunkt braucht Authentifizierung.
+
+Endpunkte **ohne** Schloss sind öffentlich.
+:::
+
+---
+
+## components/schemas — Das Message-Objekt
+
+```json
+"Message": {
+  "type": "object",
+  "required": ["id", "title", "content", "author", "created_at"],
+  "properties": {
+    "id":         { "type": "integer", "example": 1 },
+    "title":      { "type": "string", "maxLength": 200 },
+    "content":    { "type": "string", "description": "Inhalt der Nachricht" },
+    "author":     { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time", "nullable": true }
+  }
+}
+```
+
+- `required` → diese Felder sind **immer** vorhanden
+- `nullable: true` → Feld kann `null` sein (z. B. `title` ist optional)
+- `$ref` → Verweis auf ein anderes Schema (Wiederverwendung)
+
+::: {.callout-note}
+Das ist exakt das JSON, das ihr bei `GET /api/v1/messages` zurückbekommt.
+:::
+
+---
+
+## components/securitySchemes - Authentifizierung
+Für JWT-Token im Header:
+```json
+"securitySchemes": {
+   "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT",
+      "description": "JWT Bearer Token. Erhalten über `POST /api/v1/auth/login`."
+   }
+}
+```
+
+::: {.callout-note}
+securitySchemes sind sehr spezifisch auf die verwendete Authentifizierung!
+:::
+
+---
+
+## Swagger UI — Wie nutze ich es?
+
+**Schritt 1 — Endpunkt aufklappen**
+Auf einen Endpunkt klicken → Methode, Parameter, Schemas werden angezeigt.
+
+**Schritt 2 — Authentifizieren**
+Oben rechts: **Authorize** → Bearer Token eingeben (aus Block 3 bekannt).
+
+**Schritt 3 — Try it out**
+Button „Try it out" → Parameter ausfüllen → **Execute**
+
+**Schritt 4 — Response lesen**
+Statuscode, Response-Header und Body werden direkt angezeigt.
+
+::: {.callout-tip}
+Swagger UI führt denselben HTTP-Request aus wie curl –
+nur mit einer grafischen Oberfläche.
+:::
+
+---
+
+## Übung 5 - OpenAPI
+
+SwaggerUI: <https://rest.fschmalzel.de/openapi/> 
+
+OpenAPI JSON: <https://rest.fschmalzel.de/openapi/openapi.json>
+
+**Aufgabe:** Nur mit der API-Dokumentation (kein Spickzettel!):
+
+1. Listet alle Endpunkte der MessageBoard-API auf.
+   Welche brauchen Authentifizierung?
+2. Erstellt eine eigene Nachricht — diesmal direkt über Swagger UI.
+3. Wie verändert man eine Nachricht? Welche Parameter werden benötigt?
+
+
+**Bonus:** Erinnert euch an Übung 3, Aufgabe 4 — ihr konntet eine Nachricht nicht ändern, weil euch die Felder fehlten. Holt das jetzt nach: Ändert eine Nachricht per cURL, mit der Dokumentation als Hilfe.
+
+**Diskussion:** Ihr habt das MessageBoard jetzt auf drei Arten bedient: cURL blind, Swagger UI und cURL mit Doku. Was war am einfachsten? Wo seht ihr Vor- / Nachteile?
+
+::: {.notes}
+Aufgabe 4 aus Übung 3 -> Aufgabe 3
+:::

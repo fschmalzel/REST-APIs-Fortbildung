@@ -1,0 +1,26 @@
+---
+title: "Fortbildung"
+subtitle: "REST APIs"
+format: revealjs
+---
+
+# HTTP Grundlagen & Datenformate
+
+{{< include 01-http-grundlagen.qmd >}}
+{{< include 01-curl.qmd >}}
+
+# REST Prinzipien
+{{< include 02-rest-prinzipien.qmd >}}
+
+# Authentifizierung
+{{< include 03-auth.qmd >}}
+
+# Dokumentation (OpenAPI)
+{{< include 04-openapi.qmd >}}
+{{< include 04-prax-hoppscotch.qmd >}}
+
+# Caching
+{{< include 05-caching.qmd >}}
+
+# Ausblick
+{{< include xx-ausblick.qmd >}}
