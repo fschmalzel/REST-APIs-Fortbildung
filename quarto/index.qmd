@@ -37,4 +37,4 @@ Die API, an der wir gemeinsam arbeiten:
 
 ## Selbst hosten
 
-Alle Materialien und der Quellcode sind Open Source. Eine Anleitung zum Aufsetzen der eigenen Instanz findet sich im [GitHub-Repository](https://github.com/).
+Alle Materialien und der Quellcode sind Open Source. Eine Anleitung zum Aufsetzen der eigenen Instanz findet sich im [GitHub-Repository](https://github.com/fschmalzel/REST-APIs-Fortbildung).
